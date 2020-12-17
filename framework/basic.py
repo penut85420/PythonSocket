@@ -9,7 +9,9 @@ from .utils import *
 
 
 class Socket:
-    def __init__(self):
+    def __init__(self, host='localhost', port=50007):
+        self.host = host
+        self.port = port
         self.conn = None
         self.sk = nacl.public.PrivateKey.generate()
         self.pk = self.sk.public_key
@@ -58,20 +60,27 @@ class Socket:
         self.sk = new_sk
 
 class Server(Socket):
-    def __init__(self, host='', port=50007):
+    def __init__(self, *args, **kwargs):
         # Initialize socket
-        super().__init__()
+        super().__init__(*args, **kwargs)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.socket.bind((host, port))
+        self.socket.bind((self.host, self.port))
         self.addr = None
         print('Ready!')
 
         # Listen
+        self.listen()
+
+        # Exchange keys
+        self.exchange()
+
+    def listen(self):
         self.socket.listen(1)
         self.conn, (addr, port) = self.socket.accept()
         print(f'Connected by {addr}:{port}')
 
+    def exchange(self):
         # Receive client public key
         msg = self._recv()
         self.the_pk = hex_to_public_key(msg['key'])
@@ -80,12 +89,16 @@ class Server(Socket):
         self._send(key=bytes_to_hex(self.pk))
 
 class Client(Socket):
-    def __init__(self, host='localhost', port=50007):
+    def __init__(self, *args, **kwargs):
         # Initialize connection
-        super().__init__()
+        super().__init__(*args, **kwargs)
+
+    def connect(self, host, port):
         self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.conn.connect((host, port))
+        self.exchange()
 
+    def exchange(self):
         # Send client public key
         self._send(key=bytes_to_hex(self.pk))
 

@@ -20,6 +20,7 @@ class MyServer(Server):
 class MyClient(Client):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.connect(self.host, self.port)
 
         # Begin turn-based conversation
         msg = ''
